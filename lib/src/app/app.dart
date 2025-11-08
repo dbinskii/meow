@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import '../core/navigation/app_router.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
-import '../features/cat/presentation/views/cat_view.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -15,7 +15,8 @@ class App extends StatelessWidget {
         fontFamily: 'Satoshi',
         textTheme: AppTypography.textTheme,
       ),
-      home: const CatView(),
+      initialRoute: AppRouter.splash,
+      onGenerateRoute: AppRouter.onGenerateRoute,
     );
   }
 }
