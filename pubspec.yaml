@@ -23,6 +23,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    - assets/backgrounds/
+    - assets/icons/
+    - assets/icons/logo/
+
   fonts:
     - family: AntonSC
       fonts:
