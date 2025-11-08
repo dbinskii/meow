@@ -1,8 +1,8 @@
 class AppAssets {
   const AppAssets._();
 
-  static const backgrounds = BackgroundAssets._();
-  static const icons = IconAssets._();
+  static const BackgroundAssets backgrounds = BackgroundAssets._();
+  static const IconAssets icons = IconAssets._();
 }
 
 class BackgroundAssets {
