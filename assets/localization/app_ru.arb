@@ -1,0 +1,13 @@
+{
+  "@@locale": "ru",
+  "appTitle": "Мяу",
+  "@appTitle": {
+    "description": "mewo"
+  },
+  "todayCatTitle": "Сегодняшний кот",
+  "@todayCatTitle": {
+    "description": "Заголовок на экране с котом."
+  },
+  "todayCatSubtitle": "скоро появится"
+}
+

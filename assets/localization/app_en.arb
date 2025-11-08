@@ -1,0 +1,13 @@
+{
+  "@@locale": "en",
+  "appTitle": "Meow",
+  "@appTitle": {
+    "description": "mewo"
+  },
+  "todayCatTitle": "Today's cat",
+  "@todayCatTitle": {
+    "description": "Title displayed on the cat screen headline."
+  },
+  "todayCatSubtitle": "will be here soon"
+}
+

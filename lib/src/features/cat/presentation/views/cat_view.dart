@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/localizations.dart';
 
 class CatView extends StatelessWidget {
   const CatView({super.key});
@@ -12,12 +13,12 @@ class CatView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                "Today's cat",
+                AppLocalizations.of(context)!.todayCatTitle,
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
               const SizedBox(height: 12),
               Text(
-                'will be here soon',
+                AppLocalizations.of(context)!.todayCatSubtitle,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
