@@ -5,6 +5,8 @@ class AppColors {
 
   static const Color appBar = Color(0xFF171717);
   static const Color textPrimary = Color(0xFF171717);
+  static const Color textSecondary = Color(0xFF737373);
+  static const Color textTertiary = Color(0xFFFFFFFF);
   static const Color primaryButton = Color(0xFF4F46E5);
   static const Color primaryButtonContent = Color(0xFFFFFFFF);
   static const Color secondaryButton = Color(0xFFF5F5F5);
