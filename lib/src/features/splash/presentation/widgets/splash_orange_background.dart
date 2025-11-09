@@ -67,8 +67,8 @@ class SplashOrangeBackground extends StatelessWidget {
                 bottom: 0,
                 child: Transform.translate(
                   offset: Offset(
-                    size.width * 0.515 + size.width * 0.4 * progress,
-                    bottomHeight * 0.02 * (1 - progress),
+                    size.width * 0.52 + size.width * 0.4 * progress,
+                    bottomHeight * 0.01 * (1 - progress),
                   ),
                   child: Transform.rotate(
                     angle: 0.15 * progress,
