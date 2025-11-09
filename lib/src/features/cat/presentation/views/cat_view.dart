@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/localizations.dart';
 import 'package:meow/src/core/navigation/app_router.dart';
+import 'package:meow/src/core/utils/date_utils.dart';
 import 'package:meow/src/core/widgets/app_button.dart';
 import 'package:meow/src/core/widgets/primary_app_bar.dart';
 import 'package:meow/src/features/cat/data/api/cat_api.dart';
@@ -78,7 +80,10 @@ class _CatViewState extends State<CatView> with CatViewMixin<CatView> {
       appBar: PrimaryAppBar(
         action: IconButton(
           icon: const Icon(Icons.cached),
-          onPressed: _handleRefresh,
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            _handleRefresh();
+          },
         ),
       ),
       body: SafeArea(
@@ -104,7 +109,10 @@ class _CatViewState extends State<CatView> with CatViewMixin<CatView> {
                 : localizations.todayCatUpdatedLabel;
             final timestamp = isInitialLoading
                 ? '--:--'
-                : formatUpdatedAt(state.updatedAt ?? DateTime.now());
+                : formatTimeOfDay(
+                    state.updatedAt ?? DateTime.now(),
+                    locale: localizations.localeName,
+                  );
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),

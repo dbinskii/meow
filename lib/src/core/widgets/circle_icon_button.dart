@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:meow/src/core/theme/app_colors.dart';
 
 class CircleIconButton extends StatelessWidget {
@@ -14,7 +15,12 @@ class CircleIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      onPressed: onPressed,
+      onPressed: onPressed == null
+          ? null
+          : () {
+              HapticFeedback.selectionClick();
+              onPressed?.call();
+            },
       icon: Icon(icon, size: 16),
       style: IconButton.styleFrom(
         backgroundColor: AppColors.secondaryButton,

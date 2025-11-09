@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cat_channel_name">Cat updates</string>
+    <string name="cat_channel_description">Background cat refresh notifications</string>
+    <string name="cat_notification_title">New cat is ready!</string>
+    <string name="cat_notification_body">Open the app to see the latest cat picture.</string>
+</resources>
+

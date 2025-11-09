@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/localizations.dart';
+import 'package:meow/src/core/utils/date_utils.dart';
 import 'package:meow/src/core/widgets/secondary_app_bar.dart';
 import 'package:meow/src/features/cat/domain/entity/cat_entity.dart';
 import 'package:meow/src/features/cat/presentation/mixins/cat_view_mixin.dart';
@@ -63,7 +64,10 @@ class _CatHistoryViewDetailsState extends State<CatHistoryViewDetails>
               CatHeader(
                 title: localizations.historyTitle,
                 subtitle: localizations.historyUpdatedLabel,
-                timestamp: formatUpdatedAt(widget.cat.createdAt),
+                timestamp: formatFullDateTime(
+                  widget.cat.createdAt,
+                  locale: localizations.localeName,
+                ),
               ),
               const SizedBox(height: 24),
               CatCard(

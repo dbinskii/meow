@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:meow/src/core/theme/app_colors.dart';
 import 'package:meow/src/core/theme/app_typography.dart';
 
@@ -35,7 +36,12 @@ class AppButton extends StatelessWidget {
           ),
           shadowColor: colors.shadow,
         ),
-        onPressed: onPressed,
+        onPressed: onPressed == null
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                onPressed?.call();
+              },
         child: Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,

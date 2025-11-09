@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/localizations.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 mixin CatViewMixin<T extends StatefulWidget> on State<T> {
@@ -33,11 +32,5 @@ mixin CatViewMixin<T extends StatefulWidget> on State<T> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(localizations.todayCatOpenInBrowserError)),
     );
-  }
-
-  String formatUpdatedAt(DateTime dateTime) {
-    final localizations = AppLocalizations.of(context)!;
-    final formatter = DateFormat('HH:mm', localizations.localeName);
-    return formatter.format(dateTime.toLocal());
   }
 }
