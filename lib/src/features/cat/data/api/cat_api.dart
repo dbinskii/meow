@@ -32,11 +32,7 @@ class CatApiImpl implements CatApi {
     final json = jsonDecode(responseBody) as Map<String, dynamic>;
     final dto = CatDto.fromJson(json);
 
-    return CatEntity(
-      id: dto.id,
-      url: dto.url,
-      createdAt: DateTime.parse(dto.createdAt),
-    );
+    return dto.toEntity();
   }
 
   void dispose() {

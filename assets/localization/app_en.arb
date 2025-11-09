@@ -8,6 +8,50 @@
   "@todayCatTitle": {
     "description": "Title displayed on the cat screen headline."
   },
-  "todayCatSubtitle": "will be here soon"
+  "todayCatSubtitle": "will be here soon",
+  "todayCatUpdatedLabel": "Updated today",
+  "@todayCatUpdatedLabel": {
+    "description": "Label shown before the last updated timestamp on the cat screen."
+  },
+  "todayCatOpenInBrowser": "Open in Browser",
+  "@todayCatOpenInBrowser": {
+    "description": "Button label to open the cat image in a browser."
+  },
+  "todayCatViewHistory": "View History",
+  "@todayCatViewHistory": {
+    "description": "Button label to show the history of cats."
+  },
+  "todayCatErrorTitle": "Oops, no cat this time",
+  "@todayCatErrorTitle": {
+    "description": "Title shown when loading the cat fails."
+  },
+  "todayCatErrorMessage": "We couldn’t load a new cat right now. Check your connection and try again.",
+  "@todayCatErrorMessage": {
+    "description": "Subtitle shown when loading the cat fails."
+  },
+  "todayCatRetryButton": "Try Again",
+  "@todayCatRetryButton": {
+    "description": "Button label to retry loading the cat."
+  },
+  "todayCatOpenInBrowserError": "We couldn’t open the cat in your browser. Please try again later.",
+  "@todayCatOpenInBrowserError": {
+    "description": "Error message shown when opening the cat in browser fails."
+  },
+  "commonBackLabel": "Back",
+  "@commonBackLabel": {
+    "description": "Label used for the back navigation button."
+  },
+  "historyTitle": "History",
+  "@historyTitle": {
+    "description": "Title displayed on the history screens."
+  },
+  "historyUpdatedLabel": "Updated",
+  "@historyUpdatedLabel": {
+    "description": "Label shown before the last updated timestamp on the history screens."
+  },
+  "historyUpdatedTimestamp": "1 Oct, 09:41",
+  "@historyUpdatedTimestamp": {
+    "description": "Static timestamp placeholder for the history UI."
+  }
 }
 

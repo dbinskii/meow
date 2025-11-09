@@ -10,4 +10,18 @@ class CatEntity {
     required this.createdAt,
     this.cachedPath,
   });
+
+  CatEntity copyWith({
+    String? id,
+    String? url,
+    DateTime? createdAt,
+    String? cachedPath,
+  }) {
+    return CatEntity(
+      id: id ?? this.id,
+      url: url ?? this.url,
+      createdAt: createdAt ?? this.createdAt,
+      cachedPath: cachedPath ?? this.cachedPath,
+    );
+  }
 }

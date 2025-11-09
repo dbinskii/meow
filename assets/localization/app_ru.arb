@@ -8,6 +8,50 @@
   "@todayCatTitle": {
     "description": "Заголовок на экране с котом."
   },
-  "todayCatSubtitle": "скоро появится"
+  "todayCatSubtitle": "скоро появится",
+  "todayCatUpdatedLabel": "Обновлено сегодня",
+  "@todayCatUpdatedLabel": {
+    "description": "Надпись перед временем обновления на экране с котом."
+  },
+  "todayCatOpenInBrowser": "Открыть в браузере",
+  "@todayCatOpenInBrowser": {
+    "description": "Подпись кнопки, открывающей кота в браузере."
+  },
+  "todayCatViewHistory": "История",
+  "@todayCatViewHistory": {
+    "description": "Подпись кнопки перехода к истории котов."
+  },
+  "todayCatErrorTitle": "Упс, кот сбежал",
+  "@todayCatErrorTitle": {
+    "description": "Заголовок при ошибке загрузки кота."
+  },
+  "todayCatErrorMessage": "Не удалось загрузить нового кота. Проверьте интернет и попробуйте ещё раз.",
+  "@todayCatErrorMessage": {
+    "description": "Сообщение при ошибке загрузки кота."
+  },
+  "todayCatRetryButton": "Попробовать снова",
+  "@todayCatRetryButton": {
+    "description": "Подпись кнопки повтора загрузки кота."
+  },
+  "todayCatOpenInBrowserError": "Не удалось открыть кота в браузере. Попробуйте позже.",
+  "@todayCatOpenInBrowserError": {
+    "description": "Сообщение об ошибке при открытии кота в браузере."
+  },
+  "commonBackLabel": "Назад",
+  "@commonBackLabel": {
+    "description": "Подпись для кнопки возврата назад."
+  },
+  "historyTitle": "История",
+  "@historyTitle": {
+    "description": "Заголовок экранов истории."
+  },
+  "historyUpdatedLabel": "Обновлено",
+  "@historyUpdatedLabel": {
+    "description": "Подпись перед временем обновления в истории."
+  },
+  "historyUpdatedTimestamp": "1 окт., 09:41",
+  "@historyUpdatedTimestamp": {
+    "description": "Статический таймстамп для макета истории."
+  }
 }
 

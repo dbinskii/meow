@@ -1,3 +1,6 @@
+import 'package:meow/src/core/constants/cat_api_constants.dart';
+import 'package:meow/src/features/cat/domain/entity/cat_entity.dart';
+
 class CatDto {
   final String id;
   final List<String> tags;
@@ -14,7 +17,7 @@ class CatDto {
   });
 
   factory CatDto.fromJson(Map<String, dynamic> json) => CatDto(
-    id: json['id'] as String? ?? '',
+    id: (json['id'] ?? json['_id'] ?? '') as String,
     tags:
         (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
         [],
@@ -30,4 +33,19 @@ class CatDto {
     'url': url,
     'mimetype': mimetype,
   };
+
+  CatEntity toEntity() {
+    final parsedCreatedAt = createdAt.isNotEmpty
+        ? DateTime.tryParse(createdAt)
+        : null;
+    final resolvedUrl = url.startsWith('http')
+        ? url
+        : '${CatApiConstants.baseUrl}$url';
+
+    return CatEntity(
+      id: id,
+      url: resolvedUrl,
+      createdAt: parsedCreatedAt ?? DateTime.now(),
+    );
+  }
 }

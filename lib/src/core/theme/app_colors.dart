@@ -18,7 +18,7 @@ class AppColors {
   static const Color backgroundQuinary = Color(0xFFFFA50D);
   static const Color backgroundSenary = Color(0xFF4F46E5);
   static const Color icon = Color(0xFFFFFFFF);
-  static const Color loaderBackground = Color(0xFFFF4086);
+  static const Color loaderBackground = Color(0xFFb2aee8);
   static const Color loaderProgress = Color(0xFF4F46E5);
   static const Color accent = Color(0xFFF59E0B);
   static const Color textSpecial = Color(0xFF4F46E5);
