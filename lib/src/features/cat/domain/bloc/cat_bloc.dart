@@ -2,11 +2,18 @@ import 'dart:async';
 
 import 'package:meow/src/features/cat/domain/bloc/cat_event.dart';
 import 'package:meow/src/features/cat/domain/bloc/cat_state.dart';
+import 'package:meow/src/features/cat/domain/config/cat_refresh_config.dart';
 import 'package:meow/src/features/cat/domain/entity/cat_entity.dart';
 import 'package:meow/src/features/cat/domain/repositories/cat_repository.dart';
+import 'package:meow/src/features/cat/service/cat_background_service.dart';
 
 class CatBloc {
-  CatBloc({required CatRepository repository}) : _repository = repository {
+  CatBloc({
+    required CatRepository repository,
+    Duration? foregroundRefreshInterval,
+  }) : _repository = repository,
+       _foregroundRefreshInterval =
+           foregroundRefreshInterval ?? CatRefreshConfig.interval {
     _emit(const CatState.initial());
     _eventSubscription = _eventController.stream.listen(
       _handleEvent,
@@ -19,6 +26,8 @@ class CatBloc {
   final _eventController = StreamController<CatEvent>();
   StreamSubscription<CatEvent>? _eventSubscription;
   CatState _state = const CatState.initial();
+  final Duration _foregroundRefreshInterval;
+  Timer? _foregroundRefreshTimer;
 
   Stream<CatState> get stream => _controller.stream;
 
@@ -38,6 +47,7 @@ class CatBloc {
     _eventSubscription?.cancel();
     _eventController.close();
     _controller.close();
+    _cancelForegroundRefreshTimer();
   }
 
   void _handleEvent(CatEvent event) {
@@ -47,6 +57,8 @@ class CatBloc {
   }
 
   Future<void> _onCatRequested({required bool forceRefresh}) async {
+    _cancelForegroundRefreshTimer();
+
     var seededCat = _state.cat;
     var seededUpdatedAt = _state.updatedAt;
 
@@ -65,12 +77,15 @@ class CatBloc {
     try {
       final cat = await _repository.getRandomCat(forceRefresh: forceRefresh);
       _emit(CatState.success(cat, cat.createdAt));
+      unawaited(CatBackgroundService.instance.ensureScheduled());
+      _scheduleForegroundRefresh();
     } on Exception catch (error) {
       _emitFailure(
         error,
         previousCat: seededCat,
         previousUpdatedAt: seededUpdatedAt,
       );
+      _scheduleForegroundRefresh();
     }
   }
 
@@ -94,5 +109,35 @@ class CatBloc {
     }
     _state = state;
     _controller.add(state);
+  }
+
+  void _scheduleForegroundRefresh() {
+    if (_foregroundRefreshInterval <= Duration.zero ||
+        _eventController.isClosed) {
+      return;
+    }
+
+    _foregroundRefreshTimer?.cancel();
+    _foregroundRefreshTimer = Timer(
+      _foregroundRefreshInterval,
+      _handleForegroundRefreshTick,
+    );
+  }
+
+  void _cancelForegroundRefreshTimer() {
+    _foregroundRefreshTimer?.cancel();
+    _foregroundRefreshTimer = null;
+  }
+
+  void _handleForegroundRefreshTick() {
+    _foregroundRefreshTimer = null;
+    if (_eventController.isClosed) {
+      return;
+    }
+    if (_state.isLoading) {
+      _scheduleForegroundRefresh();
+      return;
+    }
+    loadCat(forceRefresh: true);
   }
 }

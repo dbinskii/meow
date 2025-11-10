@@ -2,14 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:meow/src/core/channels/background_channel.dart';
+import 'package:meow/src/features/cat/domain/config/cat_refresh_config.dart';
 
 /// Coordinates background refresh scheduling and native notifications.
 class CatBackgroundService {
   CatBackgroundService._internal({
     BackgroundChannel? channel,
     Duration? refreshInterval,
-  })  : _channel = channel ?? BackgroundChannel(),
-        _refreshInterval = refreshInterval ?? const Duration(minutes: 5);
+  }) : _channel = channel ?? BackgroundChannel(),
+       _refreshInterval = refreshInterval ?? CatRefreshConfig.interval;
 
   /// Shared instance used throughout the application.
   static final CatBackgroundService instance = CatBackgroundService._internal();

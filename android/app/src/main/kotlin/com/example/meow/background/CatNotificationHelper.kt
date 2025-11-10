@@ -1,4 +1,4 @@
-package com.example.meow.background
+package com.today.meowly.background
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -9,8 +9,8 @@ import android.graphics.Color
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.example.meow.MainActivity
-import com.example.meow.R
+import com.today.meowly.MainActivity
+import com.today.meowly.R
 
 class CatNotificationHelper(private val context: Context) {
 

@@ -1,4 +1,4 @@
-package com.example.meow.background
+package com.today.meowly.background
 
 import android.app.AlarmManager
 import android.app.PendingIntent

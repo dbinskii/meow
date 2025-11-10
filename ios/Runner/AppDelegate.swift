@@ -4,7 +4,7 @@ import UIKit
 import UserNotifications
 
 enum CatBackgroundConfig {
-  static let channelName = "com.example.meow/background"
+  static let channelName = "com.today.meowly/background"
 }
 
 struct CatPayload: Codable {
@@ -23,11 +23,14 @@ enum CatBackgroundError: Error {
 final class CatBackgroundManager {
   static let shared = CatBackgroundManager()
 
-  private let taskIdentifier = "com.example.meow.catRefresh"
+  private let taskIdentifier = "com.today.meowly.catRefresh"
   private let refreshIntervalKey = "cat_background_refresh_interval"
   private let defaults = UserDefaults.standard
   private let notificationCenter = UNUserNotificationCenter.current()
   private let worker = CatBackgroundWorker()
+#if targetEnvironment(simulator)
+  private var simulatorTimer: DispatchSourceTimer?
+#endif
 
   private init() {}
 
@@ -42,70 +45,139 @@ final class CatBackgroundManager {
   }
 
   func configure(intervalMinutes: Int, enableNotifications: Bool) {
+    print("[BGTask] configure interval=\(intervalMinutes) enableNotifications=\(enableNotifications)")
     defaults.set(intervalMinutes, forKey: refreshIntervalKey)
     if enableNotifications {
       notificationCenter.requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
+    updateBackgroundFetchInterval(minutes: intervalMinutes)
     scheduleNext()
   }
 
   func schedule(intervalMinutes: Int) {
+    print("[BGTask] schedule interval=\(intervalMinutes)")
     defaults.set(intervalMinutes, forKey: refreshIntervalKey)
+    updateBackgroundFetchInterval(minutes: intervalMinutes)
     scheduleNext()
   }
 
   func cancel() {
+    print("[BGTask] cancel")
     BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
+#if targetEnvironment(simulator)
+    simulatorTimer?.cancel()
+    simulatorTimer = nil
+#endif
   }
 
   func triggerNow(completion: @escaping (Bool) -> Void) {
     Task {
+      print("[BGTask] triggerNow start")
       let result = await executeRefresh()
       scheduleNext()
+      print("[BGTask] triggerNow result=\(result)")
       completion(result)
     }
   }
 
   private func handle(task: BGAppRefreshTask) {
+    print("[BGTask] handle task \(task.identifier)")
     scheduleNext()
     task.expirationHandler = { [weak task] in
+      print("[BGTask] task expired")
       task?.setTaskCompleted(success: false)
     }
 
     Task {
+      print("[BGTask] executeRefresh from BGTask start")
       let success = await executeRefresh()
+      print("[BGTask] executeRefresh from BGTask finished success=\(success)")
       task.setTaskCompleted(success: success)
     }
   }
 
-  private func scheduleNext() {
+  func scheduleNext() {
     let intervalMinutes = defaults.integer(forKey: refreshIntervalKey)
     let interval = max(intervalMinutes, 1)
+    print("[BGTask] scheduleNext intervalMinutes=\(intervalMinutes) intervalUsed=\(interval)")
+
+#if targetEnvironment(simulator)
+    simulatorTimer?.cancel()
+    simulatorTimer = nil
+
+    let timer = DispatchSource.makeTimerSource(queue: .main)
+    timer.schedule(deadline: .now() + .seconds(interval * 60))
+    timer.setEventHandler { [weak self] in
+      guard let self = self else { return }
+      print("[BGTask] simulator timer fired")
+      Task {
+        let success = await self.executeRefresh()
+        print("[BGTask] simulator timer finished success=\(success)")
+        self.scheduleNext()
+      }
+    }
+    simulatorTimer = timer
+    timer.resume()
+    print("[BGTask] simulator timer scheduled in \(interval) minutes")
+    return
+#endif
+
+    BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
 
     let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
     request.earliestBeginDate = Date(timeIntervalSinceNow: TimeInterval(interval * 60))
 
-    do {
-      try BGTaskScheduler.shared.submit(request)
-    } catch {
+    DispatchQueue.main.async {
+      do {
+        try BGTaskScheduler.shared.submit(request)
+      } catch {
 #if DEBUG
-      print("Failed to schedule background task: \(error)")
+        print("Failed to schedule background task: \(error)")
 #endif
+      }
+      BGTaskScheduler.shared.getPendingTaskRequests { requests in
+        let ids = requests.map { $0.identifier }
+        print("[BGTask] pending tasks:", ids)
+      }
+    }
+  }
+
+  private func updateBackgroundFetchInterval(minutes: Int) {
+    let intervalSeconds = TimeInterval(max(minutes, 1) * 60)
+    DispatchQueue.main.async {
+      print("[BGTask] updateBackgroundFetchInterval seconds=\(intervalSeconds)")
+      UIApplication.shared.setMinimumBackgroundFetchInterval(intervalSeconds)
     }
   }
 
   private func executeRefresh() async -> Bool {
+    print("[BGTask] executeRefresh() start")
+    var success = false
     do {
       guard let payload = try await worker.perform() else {
+        print("[BGTask] executeRefresh() no refresh needed")
+        success = false
         return false
       }
       await showNotification()
+      success = true
       return true
     } catch {
 #if DEBUG
       print("Cat background refresh failed: \(error)")
 #endif
+      success = false
       return false
+    }
+  }
+
+  func performBackgroundFetch(completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+    print("[BGTask] performFetch begin")
+    Task {
+      let didRefresh = await executeRefresh()
+      scheduleNext()
+      print("[BGTask] performFetch finished didRefresh=\(didRefresh)")
+      completionHandler(didRefresh ? .newData : .noData)
     }
   }
 
@@ -381,5 +453,30 @@ final class CatBackgroundWorker {
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
     completionHandler([.alert, .sound])
+  }
+
+  override func application(
+    _ application: UIApplication,
+    performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+  ) {
+    guard #available(iOS 13.0, *) else {
+      completionHandler(.noData)
+      return
+    }
+    CatBackgroundManager.shared.performBackgroundFetch(completionHandler: completionHandler)
+  }
+
+  override func application(
+    _ application: UIApplication,
+    shouldSaveSecureApplicationState coder: NSCoder
+  ) -> Bool {
+    false
+  }
+
+  override func application(
+    _ application: UIApplication,
+    shouldRestoreSecureApplicationState coder: NSCoder
+  ) -> Bool {
+    false
   }
 }

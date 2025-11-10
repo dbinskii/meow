@@ -4,8 +4,7 @@
 <dict>
 	<key>com.apple.developer.background-task</key>
 	<array>
-		<string>com.example.meow.catRefresh</string>
+		<string>com.today.meowly.catRefresh</string>
 	</array>
 </dict>
 </plist>
-

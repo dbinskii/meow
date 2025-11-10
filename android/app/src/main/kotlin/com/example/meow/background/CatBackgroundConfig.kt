@@ -1,7 +1,7 @@
-package com.example.meow.background
+package com.today.meowly.background
 
 object CatBackgroundConfig {
-    const val CHANNEL_NAME = "com.example.meow/background"
+    const val CHANNEL_NAME = "com.today.meowly/background"
 
     const val PREFS_NAME = "cat_background_config"
     private const val KEY_REFRESH_INTERVAL_MINUTES = "refresh_interval_minutes"

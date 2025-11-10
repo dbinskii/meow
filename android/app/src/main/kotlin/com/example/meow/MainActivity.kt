@@ -1,10 +1,10 @@
-package com.example.meow
+package com.today.meowly
 
 import android.os.Bundle
-import com.example.meow.background.CatBackgroundBridge
-import com.example.meow.background.CatBackgroundConfig
-import com.example.meow.background.CatBackgroundScheduler
-import com.example.meow.background.CatNotificationHelper
+import com.today.meowly.background.CatBackgroundBridge
+import com.today.meowly.background.CatBackgroundConfig
+import com.today.meowly.background.CatBackgroundScheduler
+import com.today.meowly.background.CatNotificationHelper
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel

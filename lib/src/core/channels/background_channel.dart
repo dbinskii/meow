@@ -5,7 +5,7 @@ import 'native_channel.dart';
 
 /// Platform channel that bridges background scheduling and notification logic.
 class BackgroundChannel extends NativeChannel {
-  BackgroundChannel() : super('com.example.meow/background');
+  BackgroundChannel() : super('com.today.meowly/background');
 
   /// Requests any initialization work on the native side.
   Future<void> initialize({

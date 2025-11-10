@@ -1,4 +1,4 @@
-package com.example.meow.background
+package com.today.meowly.background
 
 import android.content.Context
 import android.net.Uri
@@ -53,10 +53,10 @@ class CatBackgroundWorker(private val context: Context) {
             appendHistory(catPayload)
 
             notificationTitle = context.getString(
-                com.example.meow.R.string.cat_notification_title,
+                com.today.meowly.R.string.cat_notification_title,
             )
             notificationBody = context.getString(
-                com.example.meow.R.string.cat_notification_body,
+                com.today.meowly.R.string.cat_notification_body,
             )
             true
         } catch (error: Exception) {

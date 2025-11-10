@@ -1,4 +1,4 @@
-package com.example.meow.background
+package com.today.meowly.background
 
 import android.Manifest
 import android.app.Activity
