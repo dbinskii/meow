@@ -19,15 +19,21 @@ class CatBloc {
       _handleEvent,
       onError: (Object error, _) => _emitFailure(error),
     );
+    _backgroundRefreshSubscription = CatBackgroundService
+        .instance
+        .onBackgroundRefresh
+        .listen((_) => _handleBackgroundRefreshSignal());
   }
 
   final CatRepository _repository;
   final _controller = StreamController<CatState>.broadcast();
   final _eventController = StreamController<CatEvent>();
   StreamSubscription<CatEvent>? _eventSubscription;
+  StreamSubscription<DateTime>? _backgroundRefreshSubscription;
   CatState _state = const CatState.initial();
   final Duration _foregroundRefreshInterval;
   Timer? _foregroundRefreshTimer;
+  bool _pendingBackgroundRefresh = false;
 
   Stream<CatState> get stream => _controller.stream;
 
@@ -45,6 +51,7 @@ class CatBloc {
 
   void dispose() {
     _eventSubscription?.cancel();
+    _backgroundRefreshSubscription?.cancel();
     _eventController.close();
     _controller.close();
     _cancelForegroundRefreshTimer();
@@ -78,6 +85,7 @@ class CatBloc {
       final cat = await _repository.getRandomCat(forceRefresh: forceRefresh);
       _emit(CatState.success(cat, cat.createdAt));
       unawaited(CatBackgroundService.instance.ensureScheduled());
+      CatBackgroundService.instance.registerForegroundUpdate(cat.createdAt);
       _scheduleForegroundRefresh();
     } on Exception catch (error) {
       _emitFailure(
@@ -109,6 +117,11 @@ class CatBloc {
     }
     _state = state;
     _controller.add(state);
+
+    if (!_state.isLoading && _pendingBackgroundRefresh) {
+      _pendingBackgroundRefresh = false;
+      unawaited(_refreshFromCache());
+    }
   }
 
   void _scheduleForegroundRefresh() {
@@ -139,5 +152,23 @@ class CatBloc {
       return;
     }
     loadCat(forceRefresh: true);
+  }
+
+  Future<void> _refreshFromCache() async {
+    final cached = await _repository.getLastCachedCat();
+    if (cached == null) {
+      loadCat(forceRefresh: true);
+      return;
+    }
+    _emit(CatState.success(cached, cached.createdAt));
+    CatBackgroundService.instance.registerForegroundUpdate(cached.createdAt);
+  }
+
+  void _handleBackgroundRefreshSignal() {
+    if (_state.isLoading) {
+      _pendingBackgroundRefresh = true;
+      return;
+    }
+    unawaited(_refreshFromCache());
   }
 }

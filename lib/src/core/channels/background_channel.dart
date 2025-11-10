@@ -7,6 +7,22 @@ import 'native_channel.dart';
 class BackgroundChannel extends NativeChannel {
   BackgroundChannel() : super('com.today.meowly/background');
 
+  /// Registers a handler for callbacks initiated from the native side.
+  ///
+  /// Passing `null` removes the current handler.
+  void setMethodCallHandler(
+    Future<void> Function(String method, dynamic arguments)? handler,
+  ) {
+    channel.setMethodCallHandler(
+      handler == null
+          ? null
+          : (call) async {
+              await handler(call.method, call.arguments);
+              return null;
+            },
+    );
+  }
+
   /// Requests any initialization work on the native side.
   Future<void> initialize({
     required int refreshIntervalMinutes,
@@ -23,6 +39,12 @@ class BackgroundChannel extends NativeChannel {
     return invokeMethod('schedule', {
       'refreshIntervalMinutes': refreshIntervalMinutes,
     });
+  }
+
+  /// Schedules a one-off refresh using the provided delay while preserving the
+  /// canonical refresh interval on the native side.
+  Future<void> scheduleWithDelay(int delayMinutes) {
+    return invokeMethod('scheduleWithDelay', {'delayMinutes': delayMinutes});
   }
 
   /// Cancels all scheduled background work.

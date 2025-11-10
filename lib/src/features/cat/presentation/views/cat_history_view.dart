@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -13,6 +14,7 @@ import 'package:meow/src/features/cat/domain/entity/cat_entity.dart';
 import 'package:meow/src/features/cat/domain/repositories/cat_repository.dart';
 import 'package:meow/src/features/cat/presentation/mixins/cat_view_mixin.dart';
 import 'package:meow/src/features/cat/presentation/widgets/cat_header.dart';
+import 'package:meow/src/features/cat/service/cat_background_service.dart';
 
 class CatHistoryView extends StatefulWidget {
   const CatHistoryView({super.key});
@@ -25,18 +27,32 @@ class _CatHistoryViewState extends State<CatHistoryView>
     with CatViewMixin<CatHistoryView> {
   late final CatRepository _repository;
   late Future<List<CatEntity>> _historyFuture;
+  StreamSubscription<DateTime>? _backgroundSubscription;
 
   @override
   void initState() {
     super.initState();
     _repository = CatRepositoryImpl(api: CatApiImpl());
     _historyFuture = _repository.getHistory();
+    _backgroundSubscription = CatBackgroundService.instance.onBackgroundRefresh
+        .listen((_) {
+          if (!mounted) {
+            return;
+          }
+          _reloadHistory();
+        });
   }
 
   void _reloadHistory() {
     setState(() {
       _historyFuture = _repository.getHistory();
     });
+  }
+
+  @override
+  void dispose() {
+    _backgroundSubscription?.cancel();
+    super.dispose();
   }
 
   @override

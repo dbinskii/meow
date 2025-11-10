@@ -2,6 +2,8 @@ package com.today.meowly.background
 
 object CatBackgroundConfig {
     const val CHANNEL_NAME = "com.today.meowly/background"
+    const val ACTION_CAT_REFRESHED = "com.today.meowly.action.CAT_REFRESHED"
+    const val EXTRA_CREATED_AT = "createdAt"
 
     const val PREFS_NAME = "cat_background_config"
     private const val KEY_REFRESH_INTERVAL_MINUTES = "refresh_interval_minutes"

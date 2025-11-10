@@ -1,6 +1,7 @@
 package com.today.meowly.background
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import org.json.JSONArray
@@ -32,8 +33,11 @@ class CatBackgroundWorker(private val context: Context) {
         private set
     var notificationBody: String = ""
         private set
+    var lastCreatedAtIso: String? = null
+        private set
 
     fun perform(): Boolean {
+        lastCreatedAtIso = null
         return try {
             if (!shouldRefresh()) {
                 return false
@@ -52,6 +56,9 @@ class CatBackgroundWorker(private val context: Context) {
             saveCache(catPayload)
             appendHistory(catPayload)
 
+            lastCreatedAtIso = createdAtIso
+            notifyForeground(createdAtIso)
+
             notificationTitle = context.getString(
                 com.today.meowly.R.string.cat_notification_title,
             )
@@ -63,6 +70,14 @@ class CatBackgroundWorker(private val context: Context) {
             Log.e(loggerTag, "Failed to refresh cat", error)
             false
         }
+    }
+
+    private fun notifyForeground(createdAtIso: String) {
+        val intent = Intent(CatBackgroundConfig.ACTION_CAT_REFRESHED).apply {
+            setPackage(context.packageName)
+            putExtra(CatBackgroundConfig.EXTRA_CREATED_AT, createdAtIso)
+        }
+        context.sendBroadcast(intent)
     }
 
     private fun shouldRefresh(): Boolean {

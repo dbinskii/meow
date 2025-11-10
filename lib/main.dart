@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'src/app/app.dart';
+import 'src/core/lifecycle/app_lifecycle_manager.dart';
 import 'src/features/cat/service/cat_background_service.dart';
 
 Future<void> main() async {
@@ -7,7 +8,10 @@ Future<void> main() async {
 
   final backgroundService = CatBackgroundService.instance;
   await backgroundService.configure();
-  await backgroundService.ensureScheduled();
+  final lifecycleManager = AppLifecycleManager(
+    backgroundService: backgroundService,
+  );
+  lifecycleManager.attach();
 
   runApp(const App());
 }

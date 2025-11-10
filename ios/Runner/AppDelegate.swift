@@ -31,6 +31,7 @@ final class CatBackgroundManager {
 #if targetEnvironment(simulator)
   private var simulatorTimer: DispatchSourceTimer?
 #endif
+  var foregroundRefreshHandler: ((String) -> Void)?
 
   private init() {}
 
@@ -58,7 +59,7 @@ final class CatBackgroundManager {
     print("[BGTask] schedule interval=\(intervalMinutes)")
     defaults.set(intervalMinutes, forKey: refreshIntervalKey)
     updateBackgroundFetchInterval(minutes: intervalMinutes)
-    scheduleNext()
+    scheduleTask(afterMinutes: intervalMinutes, label: "schedule")
   }
 
   func cancel() {
@@ -100,16 +101,25 @@ final class CatBackgroundManager {
     let intervalMinutes = defaults.integer(forKey: refreshIntervalKey)
     let interval = max(intervalMinutes, 1)
     print("[BGTask] scheduleNext intervalMinutes=\(intervalMinutes) intervalUsed=\(interval)")
+    scheduleTask(afterMinutes: interval, label: "scheduleNext")
+  }
 
+  func scheduleWithDelay(minutes: Int) {
+    let delay = max(minutes, 1)
+    print("[BGTask] scheduleWithDelay delayUsed=\(delay)")
+    scheduleTask(afterMinutes: delay, label: "scheduleWithDelay")
+  }
+
+  private func scheduleTask(afterMinutes minutes: Int, label: String) {
 #if targetEnvironment(simulator)
     simulatorTimer?.cancel()
     simulatorTimer = nil
 
     let timer = DispatchSource.makeTimerSource(queue: .main)
-    timer.schedule(deadline: .now() + .seconds(interval * 60))
+    timer.schedule(deadline: .now() + .seconds(minutes * 60))
     timer.setEventHandler { [weak self] in
       guard let self = self else { return }
-      print("[BGTask] simulator timer fired")
+      print("[BGTask] simulator timer fired for \(label)")
       Task {
         let success = await self.executeRefresh()
         print("[BGTask] simulator timer finished success=\(success)")
@@ -118,14 +128,14 @@ final class CatBackgroundManager {
     }
     simulatorTimer = timer
     timer.resume()
-    print("[BGTask] simulator timer scheduled in \(interval) minutes")
+    print("[BGTask] simulator timer scheduled in \(minutes) minutes")
     return
 #endif
 
     BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
 
     let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
-    request.earliestBeginDate = Date(timeIntervalSinceNow: TimeInterval(interval * 60))
+    request.earliestBeginDate = Date(timeIntervalSinceNow: TimeInterval(minutes * 60))
 
     DispatchQueue.main.async {
       do {
@@ -140,6 +150,7 @@ final class CatBackgroundManager {
         print("[BGTask] pending tasks:", ids)
       }
     }
+    updateBackgroundFetchInterval(minutes: minutes)
   }
 
   private func updateBackgroundFetchInterval(minutes: Int) {
@@ -160,6 +171,7 @@ final class CatBackgroundManager {
         return false
       }
       await showNotification()
+      await notifyForegroundIfNeeded(payload: payload)
       success = true
       return true
     } catch {
@@ -179,6 +191,12 @@ final class CatBackgroundManager {
       print("[BGTask] performFetch finished didRefresh=\(didRefresh)")
       completionHandler(didRefresh ? .newData : .noData)
     }
+  }
+
+  @MainActor
+  private func notifyForegroundIfNeeded(payload: CatPayload) async {
+    guard UIApplication.shared.applicationState == .active else { return }
+    foregroundRefreshHandler?(payload.createdAt)
   }
 
   @MainActor
@@ -384,6 +402,7 @@ final class CatBackgroundWorker {
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
+  private var backgroundChannel: FlutterMethodChannel?
 
   override func application(
     _ application: UIApplication,
@@ -401,6 +420,12 @@ final class CatBackgroundWorker {
         name: CatBackgroundConfig.channelName,
         binaryMessenger: controller.binaryMessenger
       )
+      backgroundChannel = channel
+      if #available(iOS 13.0, *) {
+        CatBackgroundManager.shared.foregroundRefreshHandler = { [weak self] createdAt in
+          self?.notifyFlutterOfRefresh(createdAt: createdAt)
+        }
+      }
       channel.setMethodCallHandler { [weak self] call, result in
         self?.handle(call: call, result: result)
       }
@@ -425,6 +450,12 @@ final class CatBackgroundWorker {
         CatBackgroundManager.shared.schedule(intervalMinutes: interval)
       }
       result(nil)
+    case "scheduleWithDelay":
+      let delay = arguments?["delayMinutes"] as? Int ?? 1
+      if #available(iOS 13.0, *) {
+        CatBackgroundManager.shared.scheduleWithDelay(minutes: delay)
+      }
+      result(nil)
     case "cancel":
       if #available(iOS 13.0, *) {
         CatBackgroundManager.shared.cancel()
@@ -445,6 +476,11 @@ final class CatBackgroundWorker {
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  private func notifyFlutterOfRefresh(createdAt: String) {
+    let payload: [String: Any] = ["createdAt": createdAt]
+    backgroundChannel?.invokeMethod("catRefreshed", payload)
   }
 
   override func userNotificationCenter(

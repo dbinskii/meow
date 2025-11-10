@@ -10,14 +10,18 @@ class CatBackgroundService {
     BackgroundChannel? channel,
     Duration? refreshInterval,
   }) : _channel = channel ?? BackgroundChannel(),
-       _refreshInterval = refreshInterval ?? CatRefreshConfig.interval;
+       _refreshInterval = refreshInterval ?? CatRefreshConfig.interval {
+    _channel.setMethodCallHandler(_handlePlatformCallback);
+  }
 
   /// Shared instance used throughout the application.
   static final CatBackgroundService instance = CatBackgroundService._internal();
 
   final BackgroundChannel _channel;
+  final _onBackgroundRefreshController = StreamController<DateTime>.broadcast();
   Duration _refreshInterval;
   bool _initialized = false;
+  DateTime? _lastKnownUpdateAt;
 
   /// Configures the native side and schedules regular refreshes.
   ///
@@ -47,7 +51,12 @@ class CatBackgroundService {
     if (!_initialized) {
       await configure();
     }
-    await _channel.schedule(_refreshInterval.inMinutes);
+    final delayMinutes = _resolveDelayMinutes();
+    if (delayMinutes != null) {
+      await _channel.scheduleWithDelay(delayMinutes);
+    } else {
+      await _channel.schedule(_refreshInterval.inMinutes);
+    }
   }
 
   /// Forces an immediate native refresh (primarily used for QA).
@@ -67,5 +76,50 @@ class CatBackgroundService {
     if (_initialized) {
       await _channel.schedule(_refreshInterval.inMinutes);
     }
+  }
+
+  /// Stream of native background refresh completions.
+  Stream<DateTime> get onBackgroundRefresh =>
+      _onBackgroundRefreshController.stream;
+
+  /// Records the timestamp of the most recently presented cat while the app is
+  /// in the foreground. This allows the background scheduler to respect the
+  /// remaining interval instead of restarting the full period.
+  void registerForegroundUpdate(DateTime updatedAt) {
+    _lastKnownUpdateAt = updatedAt;
+  }
+
+  Future<void> _handlePlatformCallback(String method, dynamic arguments) async {
+    if (method != 'catRefreshed') {
+      return;
+    }
+
+    DateTime? updatedAt;
+    final payload = arguments;
+    if (payload is Map) {
+      final createdAtRaw = payload['createdAt'];
+      if (createdAtRaw is String && createdAtRaw.isNotEmpty) {
+        updatedAt = DateTime.tryParse(createdAtRaw);
+      }
+    }
+
+    final resolved = updatedAt ?? DateTime.now();
+    _lastKnownUpdateAt = resolved;
+    _onBackgroundRefreshController.add(resolved);
+  }
+
+  int? _resolveDelayMinutes() {
+    final lastKnown = _lastKnownUpdateAt;
+    if (lastKnown == null) {
+      return null;
+    }
+
+    final elapsed = DateTime.now().difference(lastKnown);
+    final remaining = _refreshInterval - elapsed;
+    if (remaining <= Duration.zero) {
+      return null;
+    }
+    final minutes = remaining.inMinutes;
+    return minutes > 0 ? minutes : 1;
   }
 }

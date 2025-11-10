@@ -62,6 +62,17 @@ class CatBackgroundBridge(
                 result.success(null)
             }
 
+            "scheduleWithDelay" -> {
+                val delay = call.argument<Int>("delayMinutes") ?: 0
+                val resolvedDelay = delay.coerceAtLeast(1)
+                if (debugLogging) {
+                    Log.d(loggerTag, "scheduleWithDelay: delay=$resolvedDelay")
+                }
+                scheduler.scheduleNext(resolvedDelay)
+                requestExactAlarmPermissionIfNeeded()
+                result.success(null)
+            }
+
             "cancel" -> {
                 if (debugLogging) {
                     Log.d(loggerTag, "cancel")
