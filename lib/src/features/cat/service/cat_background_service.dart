@@ -21,7 +21,9 @@ class CatBackgroundService {
   final _onBackgroundRefreshController = StreamController<DateTime>.broadcast();
   Duration _refreshInterval;
   bool _initialized = false;
-  DateTime? _lastKnownUpdateAt;
+
+  /// Tracks the latest foreground refresh to preserve the background interval.
+  DateTime? lastKnownUpdateAt;
 
   /// Configures the native side and schedules regular refreshes.
   ///
@@ -82,14 +84,8 @@ class CatBackgroundService {
   Stream<DateTime> get onBackgroundRefresh =>
       _onBackgroundRefreshController.stream;
 
-  /// Records the timestamp of the most recently presented cat while the app is
-  /// in the foreground. This allows the background scheduler to respect the
-  /// remaining interval instead of restarting the full period.
-  void registerForegroundUpdate(DateTime updatedAt) {
-    _lastKnownUpdateAt = updatedAt;
-  }
-
-  Future<void> _handlePlatformCallback(String method, dynamic arguments) async {
+  /// Handles callbacks from native and updates the most recent refresh time.
+  Future<void> _handlePlatformCallback(String method, Object? arguments) async {
     if (method != 'catRefreshed') {
       return;
     }
@@ -104,12 +100,12 @@ class CatBackgroundService {
     }
 
     final resolved = updatedAt ?? DateTime.now();
-    _lastKnownUpdateAt = resolved;
+    lastKnownUpdateAt = resolved;
     _onBackgroundRefreshController.add(resolved);
   }
 
   int? _resolveDelayMinutes() {
-    final lastKnown = _lastKnownUpdateAt;
+    final lastKnown = lastKnownUpdateAt;
     if (lastKnown == null) {
       return null;
     }

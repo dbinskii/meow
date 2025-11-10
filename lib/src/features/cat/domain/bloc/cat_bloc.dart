@@ -85,7 +85,7 @@ class CatBloc {
       final cat = await _repository.getRandomCat(forceRefresh: forceRefresh);
       _emit(CatState.success(cat, cat.createdAt));
       unawaited(CatBackgroundService.instance.ensureScheduled());
-      CatBackgroundService.instance.registerForegroundUpdate(cat.createdAt);
+      CatBackgroundService.instance.lastKnownUpdateAt = cat.createdAt;
       _scheduleForegroundRefresh();
     } on Exception catch (error) {
       _emitFailure(
@@ -161,7 +161,7 @@ class CatBloc {
       return;
     }
     _emit(CatState.success(cached, cached.createdAt));
-    CatBackgroundService.instance.registerForegroundUpdate(cached.createdAt);
+    CatBackgroundService.instance.lastKnownUpdateAt = cached.createdAt;
   }
 
   void _handleBackgroundRefreshSignal() {

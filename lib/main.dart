@@ -8,10 +8,7 @@ Future<void> main() async {
 
   final backgroundService = CatBackgroundService.instance;
   await backgroundService.configure();
-  final lifecycleManager = AppLifecycleManager(
-    backgroundService: backgroundService,
-  );
-  lifecycleManager.attach();
+  AppLifecycleManager(backgroundService: backgroundService).attach();
 
   runApp(const App());
 }

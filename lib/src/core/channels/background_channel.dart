@@ -7,11 +7,8 @@ import 'native_channel.dart';
 class BackgroundChannel extends NativeChannel {
   BackgroundChannel() : super('com.today.meowly/background');
 
-  /// Registers a handler for callbacks initiated from the native side.
-  ///
-  /// Passing `null` removes the current handler.
   void setMethodCallHandler(
-    Future<void> Function(String method, dynamic arguments)? handler,
+    Future<void> Function(String method, Object? arguments)? handler,
   ) {
     channel.setMethodCallHandler(
       handler == null
