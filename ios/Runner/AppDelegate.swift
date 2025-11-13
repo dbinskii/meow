@@ -480,7 +480,7 @@ final class CatBackgroundWorker {
 
   private func notifyFlutterOfRefresh(createdAt: String) {
     let payload: [String: Any] = ["createdAt": createdAt]
-    backgroundChannel?.invokeMethod("catRefreshed", payload)
+    backgroundChannel?.invokeMethod("catRefreshed", arguments: payload)
   }
 
   override func userNotificationCenter(
