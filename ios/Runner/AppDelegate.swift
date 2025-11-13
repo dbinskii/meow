@@ -49,10 +49,81 @@ final class CatBackgroundManager {
     print("[BGTask] configure interval=\(intervalMinutes) enableNotifications=\(enableNotifications)")
     defaults.set(intervalMinutes, forKey: refreshIntervalKey)
     if enableNotifications {
-      notificationCenter.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+      notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+        DispatchQueue.main.async {
+          if let error = error {
+            print("[BGTask] Notification authorization error: \(error)")
+          } else {
+            print("[BGTask] Notification authorization granted: \(granted)")
+            if granted {
+              self.setupNotificationCategory()
+              self.scheduleLocalNotification(intervalMinutes: intervalMinutes)
+            } else {
+              print("[BGTask] ⚠️ Notifications not authorized! Check iPhone Settings > [App] > Notifications")
+            }
+          }
+        }
+      }
     }
     updateBackgroundFetchInterval(minutes: intervalMinutes)
     scheduleNext()
+  }
+  
+  private func setupNotificationCategory() {
+    let refreshAction = UNNotificationAction(
+      identifier: "REFRESH_ACTION",
+      title: "Refresh Now",
+      options: [.foreground]
+    )
+    let category = UNNotificationCategory(
+      identifier: "CAT_REFRESH_CATEGORY",
+      actions: [refreshAction],
+      intentIdentifiers: [],
+      options: []
+    )
+    notificationCenter.setNotificationCategories([category])
+  }
+  
+  func scheduleLocalNotification(intervalMinutes: Int) {
+    // Check authorization status first
+    notificationCenter.getNotificationSettings { settings in
+      print("[BGTask] Notification settings: authorized=\(settings.authorizationStatus == .authorized), alert=\(settings.alertSetting == .enabled)")
+      
+      guard settings.authorizationStatus == .authorized else {
+        print("[BGTask] ⚠️ Cannot schedule notifications: not authorized")
+        return
+      }
+      
+      // Remove only our notification (not all)
+      self.notificationCenter.removePendingNotificationRequests(withIdentifiers: ["cat_scheduled_refresh"])
+      
+      let content = UNMutableNotificationContent()
+      content.title = NSLocalizedString("Time for a new cat!", comment: "Scheduled notification title")
+      content.body = NSLocalizedString("Tap to refresh and see a new cat picture.", comment: "Scheduled notification body")
+      content.sound = .default
+      content.categoryIdentifier = "CAT_REFRESH_CATEGORY"
+      content.userInfo = ["action": "refresh_cat"]
+      
+      // Schedule ONE notification for the next interval (like Android)
+      let trigger = UNTimeIntervalNotificationTrigger(
+        timeInterval: TimeInterval(intervalMinutes * 60),
+        repeats: false
+      )
+      
+      let request = UNNotificationRequest(
+        identifier: "cat_scheduled_refresh",
+        content: content,
+        trigger: trigger
+      )
+      
+      self.notificationCenter.add(request) { error in
+        if let error = error {
+          print("[BGTask] ❌ Failed to schedule local notification: \(error)")
+        } else {
+          print("[BGTask] ✅ Scheduled local notification for \(intervalMinutes) minutes")
+        }
+      }
+    }
   }
 
   func schedule(intervalMinutes: Int) {
@@ -60,11 +131,18 @@ final class CatBackgroundManager {
     defaults.set(intervalMinutes, forKey: refreshIntervalKey)
     updateBackgroundFetchInterval(minutes: intervalMinutes)
     scheduleTask(afterMinutes: intervalMinutes, label: "schedule")
+    // Schedule notification only if notifications are enabled
+    notificationCenter.getNotificationSettings { settings in
+      if settings.authorizationStatus == .authorized {
+        self.scheduleLocalNotification(intervalMinutes: intervalMinutes)
+      }
+    }
   }
 
   func cancel() {
     print("[BGTask] cancel")
     BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
+    notificationCenter.removeAllPendingNotificationRequests()
 #if targetEnvironment(simulator)
     simulatorTimer?.cancel()
     simulatorTimer = nil
@@ -76,6 +154,11 @@ final class CatBackgroundManager {
       print("[BGTask] triggerNow start")
       let result = await executeRefresh()
       scheduleNext()
+      // Schedule next notification after manual trigger (like Android)
+      let interval = defaults.integer(forKey: refreshIntervalKey)
+      if interval > 0 {
+        scheduleLocalNotification(intervalMinutes: interval)
+      }
       print("[BGTask] triggerNow result=\(result)")
       completion(result)
     }
@@ -94,6 +177,11 @@ final class CatBackgroundManager {
       let success = await executeRefresh()
       print("[BGTask] executeRefresh from BGTask finished success=\(success)")
       task.setTaskCompleted(success: success)
+      // Schedule next notification after task completes (like Android)
+      let interval = defaults.integer(forKey: refreshIntervalKey)
+      if interval > 0 {
+        scheduleLocalNotification(intervalMinutes: interval)
+      }
     }
   }
 
@@ -188,6 +276,11 @@ final class CatBackgroundManager {
     Task {
       let didRefresh = await executeRefresh()
       scheduleNext()
+      // Schedule next notification after fetch completes (like Android)
+      let interval = defaults.integer(forKey: refreshIntervalKey)
+      if interval > 0 {
+        scheduleLocalNotification(intervalMinutes: interval)
+      }
       print("[BGTask] performFetch finished didRefresh=\(didRefresh)")
       completionHandler(didRefresh ? .newData : .noData)
     }
@@ -415,6 +508,9 @@ final class CatBackgroundWorker {
     }
     UNUserNotificationCenter.current().delegate = self
 
+    // Check if app was launched from notification (will be handled in didReceive response)
+    // Local notifications are handled via UNUserNotificationCenter delegate
+
     if let controller = window?.rootViewController as? FlutterViewController {
       let channel = FlutterMethodChannel(
         name: CatBackgroundConfig.channelName,
@@ -490,6 +586,32 @@ final class CatBackgroundWorker {
   ) {
     completionHandler([.alert, .sound])
   }
+  
+  override func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    let userInfo = response.notification.request.content.userInfo
+    
+    // Check if this is a refresh notification
+    if userInfo["action"] as? String == "refresh_cat" || response.actionIdentifier == "REFRESH_ACTION" {
+      print("[BGTask] Notification tapped - executing refresh")
+      if #available(iOS 13.0, *) {
+        CatBackgroundManager.shared.triggerNow { success in
+          print("[BGTask] Refresh from notification completed: \(success)")
+          // Reschedule notifications after refresh
+          let interval = UserDefaults.standard.integer(forKey: "cat_background_refresh_interval")
+          if interval > 0 {
+            CatBackgroundManager.shared.scheduleLocalNotification(intervalMinutes: interval)
+          }
+        }
+      }
+    }
+    
+    completionHandler()
+  }
+  
 
   override func application(
     _ application: UIApplication,
