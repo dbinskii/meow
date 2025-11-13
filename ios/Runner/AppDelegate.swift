@@ -139,7 +139,8 @@ final class CatBackgroundManager {
   }
 
   func cancel() {
-    print("[BGTask] cancel")
+    print("[BGTask] cancel - canceling BG task and notifications (like Android)")
+    // Cancel BG task when app is in foreground (like Android AlarmManager)
     BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
     notificationCenter.removeAllPendingNotificationRequests()
 #if targetEnvironment(simulator)
@@ -151,7 +152,11 @@ final class CatBackgroundManager {
   func triggerNow(completion: @escaping (Bool) -> Void) {
     Task {
       print("[BGTask] triggerNow start")
-      let result = await executeRefresh()
+      // Check if app is active - if so, don't show notification
+      let isAppActive = await MainActor.run {
+        UIApplication.shared.applicationState == .active
+      }
+      let result = await executeRefresh(skipNotification: isAppActive)
       scheduleNext() // This already schedules notification
       print("[BGTask] triggerNow result=\(result)")
       completion(result)
@@ -180,6 +185,7 @@ final class CatBackgroundManager {
     let intervalMinutes = defaults.integer(forKey: refreshIntervalKey)
     let interval = max(intervalMinutes, 1)
     print("[BGTask] scheduleNext intervalMinutes=\(intervalMinutes) intervalUsed=\(interval)")
+    // Always schedule BG task (works even when app is closed)
     scheduleTask(afterMinutes: interval, label: "scheduleNext")
     // Also schedule local notification (primary mechanism for when app is closed)
     notificationCenter.getNotificationSettings { settings in
@@ -246,8 +252,8 @@ final class CatBackgroundManager {
     }
   }
 
-  private func executeRefresh() async -> Bool {
-    print("[BGTask] executeRefresh() start")
+  private func executeRefresh(skipNotification: Bool = false) async -> Bool {
+    print("[BGTask] executeRefresh() start skipNotification=\(skipNotification)")
     var success = false
     do {
       guard let payload = try await worker.perform() else {
@@ -255,7 +261,25 @@ final class CatBackgroundManager {
         success = false
         return false
       }
-      await showNotification()
+      // Show notification immediately after refresh (like Android)
+      // But only if app is in background and not skipped
+      if !skipNotification {
+        await MainActor.run {
+          let appState = UIApplication.shared.applicationState
+          if appState != .active {
+            // Cancel scheduled notification to avoid duplicate
+            self.notificationCenter.removePendingNotificationRequests(withIdentifiers: ["cat_scheduled_refresh"])
+            // Show notification immediately
+            Task {
+              await self.showNotification()
+            }
+          } else {
+            print("[BGTask] App is active, skipping notification")
+          }
+        }
+      } else {
+        print("[BGTask] Notification skipped (triggered manually)")
+      }
       await notifyForegroundIfNeeded(payload: payload)
       success = true
       return true

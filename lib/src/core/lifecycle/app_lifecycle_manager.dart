@@ -39,6 +39,8 @@ class AppLifecycleManager with WidgetsBindingObserver {
       case AppLifecycleState.resumed:
         if (_isInBackground) {
           _isInBackground = false;
+          // Cancel BG task when app is in foreground (like Android)
+          // Flutter Timer in CatBloc will handle foreground updates
           unawaited(backgroundService.cancel());
         }
         break;
