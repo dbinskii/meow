@@ -53,33 +53,41 @@ class _CatHistoryViewDetailsState extends State<CatHistoryViewDetails>
     final localizations = AppLocalizations.of(context)!;
     final imageUrl = widget.cat.cachedPath ?? widget.cat.url;
 
-    return Scaffold(
-      appBar: SecondaryAppBar(label: localizations.commonBackLabel),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CatHeader(
-                title: localizations.historyTitle,
-                subtitle: localizations.historyUpdatedLabel,
-                timestamp: formatFullDateTime(
-                  widget.cat.createdAt,
-                  locale: localizations.localeName,
+    return PopScope(
+      canPop: true,
+      onPopInvoked: (didPop) {
+        if (didPop) {
+          // Handle any cleanup if needed when popped
+        }
+      },
+      child: Scaffold(
+        appBar: SecondaryAppBar(label: localizations.commonBackLabel),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CatHeader(
+                  title: localizations.historyTitle,
+                  subtitle: localizations.historyUpdatedLabel,
+                  timestamp: formatFullDateTime(
+                    widget.cat.createdAt,
+                    locale: localizations.localeName,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              CatCard(
-                imageUrl: imageUrl,
-                zoom: _zoom,
-                aspectRatio: 1,
-                onZoomIn: _canZoomIn ? _handleZoomIn : null,
-                onZoomOut: _canZoomOut ? _handleZoomOut : null,
-                onOpenInBrowser: () => openCatInBrowser(widget.cat.url),
-                showViewHistoryButton: false,
-              ),
-            ],
+                const SizedBox(height: 24),
+                CatCard(
+                  imageUrl: imageUrl,
+                  zoom: _zoom,
+                  aspectRatio: 1,
+                  onZoomIn: _canZoomIn ? _handleZoomIn : null,
+                  onZoomOut: _canZoomOut ? _handleZoomOut : null,
+                  onOpenInBrowser: () => openCatInBrowser(widget.cat.url),
+                  showViewHistoryButton: false,
+                ),
+              ],
+            ),
           ),
         ),
       ),

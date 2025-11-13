@@ -59,67 +59,77 @@ class _CatHistoryViewState extends State<CatHistoryView>
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: SecondaryAppBar(label: localizations.commonBackLabel),
-      body: SafeArea(
-        child: FutureBuilder<List<CatEntity>>(
-          future: _historyFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: AppLoader());
-            }
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {}
+      },
+      child: Scaffold(
+        appBar: SecondaryAppBar(label: localizations.commonBackLabel),
+        body: SafeArea(
+          child: FutureBuilder<List<CatEntity>>(
+            future: _historyFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: AppLoader());
+              }
 
-            if (snapshot.hasError) {
-              return Center(child: Text(localizations.todayCatErrorMessage));
-            }
+              if (snapshot.hasError) {
+                return Center(child: Text(localizations.todayCatErrorMessage));
+              }
 
-            final historyCats = snapshot.data ?? const <CatEntity>[];
-            final count = historyCats.length;
-            final displayItems = historyCats;
+              final historyCats = snapshot.data ?? const <CatEntity>[];
+              final count = historyCats.length;
+              final displayItems = historyCats;
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CatHeader(
-                    title: localizations.historyTitle,
-                    subtitle: '',
-                    trailing: count > 0 ? _HistoryCounter(count: count) : null,
-                  ),
-                  Expanded(
-                    child: GridView.builder(
-                      itemCount: displayItems.length,
-                      physics: const BouncingScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            mainAxisSpacing: 14,
-                            crossAxisSpacing: 14,
-                            childAspectRatio: 0.75,
-                          ),
-                      itemBuilder: (context, index) {
-                        final cat = displayItems[index];
-                        return _HistoryTile(
-                          cat: cat,
-                          onTap: () async {
-                            await Navigator.of(context).pushNamed(
-                              AppRouter.catHistoryDetails,
-                              arguments: CatHistoryDetailsArgs(cat: cat),
-                            );
-                            if (!context.mounted) {
-                              return;
-                            }
-                            _reloadHistory();
-                          },
-                        );
-                      },
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CatHeader(
+                      title: localizations.historyTitle,
+                      subtitle: '',
+                      trailing: count > 0
+                          ? _HistoryCounter(count: count)
+                          : null,
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
+                    Expanded(
+                      child: GridView.builder(
+                        itemCount: displayItems.length,
+                        physics: const BouncingScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 14,
+                              crossAxisSpacing: 14,
+                              childAspectRatio: 0.75,
+                            ),
+                        itemBuilder: (context, index) {
+                          final cat = displayItems[index];
+                          return _HistoryTile(
+                            cat: cat,
+                            onTap: () async {
+                              await Navigator.of(context).pushNamed(
+                                AppRouter.catHistoryDetails,
+                                arguments: CatHistoryDetailsArgs(cat: cat),
+                              );
+                              if (!context.mounted) {
+                                return;
+                              }
+                              _reloadHistory();
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

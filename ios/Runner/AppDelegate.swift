@@ -57,7 +57,6 @@ final class CatBackgroundManager {
             print("[BGTask] Notification authorization granted: \(granted)")
             if granted {
               self.setupNotificationCategory()
-              self.scheduleLocalNotification(intervalMinutes: intervalMinutes)
             } else {
               print("[BGTask] ⚠️ Notifications not authorized! Check iPhone Settings > [App] > Notifications")
             }
@@ -66,7 +65,7 @@ final class CatBackgroundManager {
       }
     }
     updateBackgroundFetchInterval(minutes: intervalMinutes)
-    scheduleNext()
+    scheduleNext() // This will schedule both BGTask and notification
   }
   
   private func setupNotificationCategory() {
@@ -153,12 +152,7 @@ final class CatBackgroundManager {
     Task {
       print("[BGTask] triggerNow start")
       let result = await executeRefresh()
-      scheduleNext()
-      // Schedule next notification after manual trigger (like Android)
-      let interval = defaults.integer(forKey: refreshIntervalKey)
-      if interval > 0 {
-        scheduleLocalNotification(intervalMinutes: interval)
-      }
+      scheduleNext() // This already schedules notification
       print("[BGTask] triggerNow result=\(result)")
       completion(result)
     }
@@ -177,11 +171,8 @@ final class CatBackgroundManager {
       let success = await executeRefresh()
       print("[BGTask] executeRefresh from BGTask finished success=\(success)")
       task.setTaskCompleted(success: success)
-      // Schedule next notification after task completes (like Android)
-      let interval = defaults.integer(forKey: refreshIntervalKey)
-      if interval > 0 {
-        scheduleLocalNotification(intervalMinutes: interval)
-      }
+      // Don't schedule notification here - it's already scheduled via scheduleNext()
+      // Notification will be scheduled when user opens the notification or when app becomes active
     }
   }
 
@@ -190,6 +181,12 @@ final class CatBackgroundManager {
     let interval = max(intervalMinutes, 1)
     print("[BGTask] scheduleNext intervalMinutes=\(intervalMinutes) intervalUsed=\(interval)")
     scheduleTask(afterMinutes: interval, label: "scheduleNext")
+    // Also schedule local notification (primary mechanism for when app is closed)
+    notificationCenter.getNotificationSettings { settings in
+      if settings.authorizationStatus == .authorized {
+        self.scheduleLocalNotification(intervalMinutes: interval)
+      }
+    }
   }
 
   func scheduleWithDelay(minutes: Int) {
@@ -276,11 +273,8 @@ final class CatBackgroundManager {
     Task {
       let didRefresh = await executeRefresh()
       scheduleNext()
-      // Schedule next notification after fetch completes (like Android)
-      let interval = defaults.integer(forKey: refreshIntervalKey)
-      if interval > 0 {
-        scheduleLocalNotification(intervalMinutes: interval)
-      }
+      // Don't schedule notification here - it's already scheduled via scheduleNext()
+      // Notification will be scheduled when user opens the notification or when app becomes active
       print("[BGTask] performFetch finished didRefresh=\(didRefresh)")
       completionHandler(didRefresh ? .newData : .noData)
     }
@@ -600,11 +594,7 @@ final class CatBackgroundWorker {
       if #available(iOS 13.0, *) {
         CatBackgroundManager.shared.triggerNow { success in
           print("[BGTask] Refresh from notification completed: \(success)")
-          // Reschedule notifications after refresh
-          let interval = UserDefaults.standard.integer(forKey: "cat_background_refresh_interval")
-          if interval > 0 {
-            CatBackgroundManager.shared.scheduleLocalNotification(intervalMinutes: interval)
-          }
+          // Don't schedule notification here - triggerNow already calls scheduleNext() which schedules notification
         }
       }
     }
